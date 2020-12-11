@@ -1,0 +1,67 @@
+import pandas as pd
+import numpy as np
+import os
+EffectiveDate='20200930'
+sheetname= 'Q4 20'
+filename=''
+directory = os.path.join('W:', 'Temp', filename )
+df=pd.read_excel(directory, sheet_name=sheetname, skiprows=5)
+data_range=df.loc[pd.isna(df["ISIN"]), :].index[0]
+new_df= df.loc[:data_range-1].replace(np.nan, '', regex=True)
+new_df=new_df[['ISIN', 'Meeting type', 'Date','No','Resolution','O/A','Reason for Action']] #fields required
+new_df.to_csv(os.path.join(path '+EffectiveDate+'.csv'), index=False) #date as string
+
+# Extract data from SSMS Database
+Firstly, import pyodbc because we need to connect Python to SQL database. Pyodbc is recommended by Microsoft because they actively contribute to the source code. Import pandas to run SQL codes and convert table into dataframe (A DataFrame is a collection of series)
+import pandas as pd
+import pyodbc
+import os
+from datetime import datetime
+conn=pyodbc.connect('Driver={SQL Server};'
+                   'Server=Name_of_server;'
+                   'Database=Name_of_database;'
+                   'Trusted_Connection=yes')
+cursor=conn.cursor()
+EffectiveDate='2020-09-30' #Format dependent on date in the database
+views = [''] #
+startTime= datetime.now()
+for view in views:    
+    query= f"SELECT * FROM database.subsection.[{view}] where ReportingDate = '{EffectiveDate}'"
+    data=pd.read_sql_query(query,conn)
+    filename=view +'.csv'
+    directory = EffectiveDate[:7]
+    directory = os.path.join('W:','03 Data Management', 'Temp',directory )
+
+    try:
+        os.mkdir(directory)
+    except:
+        pass
+    
+    data.to_csv(os.path.join(directory, filename),index=False)
+    
+print(datetime.now() - startTime)
+
+#Looking to update missing rows for a particular dataset
+import pandas as pd
+import numpy as np
+df = pd.read_csv('filename.csv'...)
+df = df.sort_values(by=['data','dummy'], ascending= True/False).reset_index(inplace=True)
+#Unique list of different rows of data
+data_a = df['data'].unique() #First criteria
+dummy_a = df['dummy'].unique() #Second criteria
+appended_data = []
+for dat in data_a:
+    for dumm in dummy_a:
+        if ((df['data']==dat) & (df['dummy'] == dumm)).any():
+            pass
+        else:
+            data=df[df['data']==dum].head(1)
+            data=data.head(1)
+            for i in data.index:
+                value = dumm
+                data.at[i,'dummy'] = value
+                appended_data.append(data)
+            
+appended_data = pd.concat(appended_data)  
+appended_data.to_csv('Ready_for_import', index=False)
+
