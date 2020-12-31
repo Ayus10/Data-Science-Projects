@@ -65,3 +65,72 @@ for dat in data_a:
 appended_data = pd.concat(appended_data)  
 appended_data.to_csv('Ready_for_import', index=False)
 
+#How to locate the first na for a row/column
+EffectiveDate='2020-09-30'
+filename='Voting Record 2010.xls'
+directory = os.path.join('W:','03 Data Management', 'Temp', filename )
+df=pd.read_excel(directory, sheet_name='Q4 20', skiprows=5)
+data_range=df.loc[pd.isna(df["ISIN"]), :].index[0]
+new_df= df.loc[:data_range-1].replace(np.nan, '', regex=True)
+new_df.tail()
+
+#Oracle Data Extraction
+import pandas as pd
+import numpy as np
+import os
+from datetime import datetime 
+from datetime import timedelta
+import cx_Oracle
+
+CONN_INFO = {
+    'host': 'XXX.XX.XXX.XX', #IP Address
+    'port': 22, #Port usually 22 for FTP
+    'user': '',
+    'psw': '',
+    'service': 'XXX.website.com' # Name of website hosting the database
+}
+
+CONN_STR = '{user}/{psw}@{host}:{port}/{service}'.format(**CONN_INFO)
+
+conn = cx_Oracle.connect(CONN_STR)
+c = conn.cursor()
+
+#Import SQl text and run it
+filename = 'Forwards.txt'
+file_path = os.path.join('W:', '03 Data Management', 'Data Procedures', 'Code Directory',filename)
+fd = open(file_path, 'r')
+sqlFile = fd.read()
+fd.close()
+forward_df = pd.read_sql_query(sqlFile,conn)
+forward_df = forward_df.fillna(np.NaN)
+
+#Replace Data using regular expressions
+for field in fields:
+    combined[field] = np.where(combined[field] == '', combined[field+'_r'], combined[field])
+    combined[field] = combined[field].str.replace(r'^0nan$',"")
+    combined[field] = combined[field].str.replace(r'^nan$',"")
+    combined[field] = combined[field].str.replace(r'^None$',"")
+    
+#Loop thorugh data and see if it is available
+value = combined.head(1).iloc[0]['EFFECTIVE_DATE'].astype(str)
+value = value.replace(".0","")
+value = datetime.strptime(value, '%Y%m%d')
+first = value.replace(day=1)
+lastMonth = first - timedelta(days=1)
+lastMonth = lastMonth.strftime("%Y%m%d")
+print(lastMonth)
+
+new_securities = []
+for security in new_df['SECURITY_ALIAS'].unique():
+    if (old_df['SECURITY_ALIAS'] == security).any():
+        pass
+    else:
+        data = combined[combined['SECURITY_ALIAS']==security]
+        for i in data.index:
+            data.at[i,'EFFECTIVE_DATE'] = lastMonth
+            new_securities.append(data)
+if len(new_securities) != 0:
+    new_securities = pd.concat(new_securities)
+    combined = pd.concat([combined,new_securities])
+else:
+    pass
